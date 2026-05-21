@@ -22,7 +22,15 @@ func GetDiff(repoDir string, source DiffSource) (string, error) {
 	if source.Branch != "" {
 		base := source.Base
 		if base == "" {
-			base = "main"
+			// Detect default branch
+			defaultBranch, err := runGit(repoDir, "symbolic-ref", "refs/remotes/origin/HEAD", "--short")
+			if err != nil {
+				// Fallback to "main" if detection fails
+				base = "main"
+			} else {
+				// refs/remotes/origin/main → main
+				base = strings.TrimPrefix(strings.TrimSpace(defaultBranch), "refs/remotes/origin/")
+			}
 		}
 		return runGit(repoDir, "diff", base+"..."+source.Branch)
 	}

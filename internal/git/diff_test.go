@@ -47,7 +47,7 @@ func TestGetDiff_Unstaged(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if len(diff) == 0 {
-		t.Error("expected non-empty diff (last commit) when no working tree changes")
+		t.Fatal("expected non-empty diff (last commit) when no working tree changes")
 	}
 
 	// Make unstaged change
@@ -57,7 +57,7 @@ func TestGetDiff_Unstaged(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if len(diff) == 0 {
-		t.Error("expected non-empty diff for unstaged changes")
+		t.Fatal("expected non-empty diff for unstaged changes")
 	}
 	// Should contain the unstaged change, not the last commit
 	if !strings.Contains(diff, "+func main()") {
@@ -95,5 +95,40 @@ func TestGetDiff_Commit(t *testing.T) {
 	}
 	if len(diff) == 0 {
 		t.Error("expected non-empty diff for commit")
+	}
+}
+
+func TestGetDiff_Branch(t *testing.T) {
+	dir := setupTestRepo(t)
+	// Create initial commit on main
+	os.WriteFile(filepath.Join(dir, "main.go"), []byte("package main\n"), 0644)
+	runGitCmd(t, dir, "add", ".")
+	runGitCmd(t, dir, "commit", "-m", "init")
+
+	// Create feature branch
+	runGitCmd(t, dir, "checkout", "-b", "feature")
+	os.WriteFile(filepath.Join(dir, "main.go"), []byte("package main\n\nfunc main() {}\n"), 0644)
+	runGitCmd(t, dir, "add", ".")
+	runGitCmd(t, dir, "commit", "-m", "add main")
+
+	// Diff with explicit base
+	diff, err := GetDiff(dir, DiffSource{Branch: "feature", Base: "main"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(diff) == 0 {
+		t.Error("expected non-empty diff for branch comparison")
+	}
+}
+
+func TestGetDiff_InvalidCommit(t *testing.T) {
+	dir := setupTestRepo(t)
+	os.WriteFile(filepath.Join(dir, "main.go"), []byte("package main\n"), 0644)
+	runGitCmd(t, dir, "add", ".")
+	runGitCmd(t, dir, "commit", "-m", "init")
+
+	_, err := GetDiff(dir, DiffSource{Commit: "nonexistent-sha"})
+	if err == nil {
+		t.Error("expected error for invalid commit")
 	}
 }
