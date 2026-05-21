@@ -1,0 +1,64 @@
+# CR-CLI Configuration
+# Copy this file to cr-cli.yaml and customize
+
+provider:
+  # AI provider type: "openai" or "anthropic"
+  type: openai
+  # API key (use ${ENV_VAR} to reference environment variables)
+  api_key: ${OPENAI_API_KEY}
+  # API base URL (default: https://api.openai.com/v1 for openai, https://api.anthropic.com for anthropic)
+  base_url: https://api.openai.com/v1
+  # Model to use for code review
+  model: gpt-4
+  # Maximum tokens for response
+  max_tokens: 4096
+  # Temperature for response generation (0.0 - 1.0)
+  temperature: 0.1
+
+review:
+  # Minimum severity level to report: "error", "warning", "info", "style"
+  severity: blocking
+  # Number of files to review in each batch
+  batch_size: 10
+  # File extensions to review (empty = all)
+  languages:
+    - go
+    - python
+    - javascript
+    - typescript
+  # File patterns to ignore
+  ignore_patterns:
+    - "vendor/**"
+    - "**/node_modules/**"
+    - "**/*_test.go"
+  # Custom review rules
+  rules:
+    - "Check for SQL injection vulnerabilities"
+    - "Verify error handling"
+    - "Check for hardcoded credentials"
+
+output:
+  # Output format: "terminal", "json", "sarif"
+  format: terminal
+  # Enable colored output
+  color: true
+
+webhook:
+  # Enable webhook notifications
+  enabled: false
+  # Webhook URL
+  url: https://example.com/webhook
+  # Webhook type: "slack", "discord", "custom"
+  type: slack
+  # Webhook secret for signature verification
+  secret: ${WEBHOOK_SECRET}
+  # Send notification on success
+  on_success: true
+  # Send notification on failure
+  on_failure: true
+
+gitlab:
+  # GitLab instance URL
+  url: https://gitlab.com
+  # GitLab access token
+  token: ${GITLAB_TOKEN}
