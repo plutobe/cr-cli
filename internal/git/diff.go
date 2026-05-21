@@ -44,7 +44,12 @@ func GetDiff(repoDir string, source DiffSource) (string, error) {
 		return diff, nil
 	}
 
-	return runGit(repoDir, "show", "HEAD")
+	diff, err = runGit(repoDir, "show", "HEAD")
+	if err != nil {
+		// No commits yet, return empty
+		return "", nil
+	}
+	return diff, nil
 }
 
 func runGit(dir string, args ...string) (string, error) {
