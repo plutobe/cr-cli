@@ -38,8 +38,8 @@ func runGitCmd(t *testing.T, dir string, args ...string) {
 func TestGetDiff_Unstaged(t *testing.T) {
 	dir := setupTestRepo(t)
 	os.WriteFile(filepath.Join(dir, "main.go"), []byte("package main\n"), 0644)
-	exec.Command("git", "add", ".").Run()
-	exec.Command("git", "commit", "-m", "init").Run()
+	runGitCmd(t, dir, "add", ".")
+	runGitCmd(t, dir, "commit", "-m", "init")
 
 	// No unstaged or staged changes, should return last commit diff
 	diff, err := GetDiff(dir, DiffSource{})
