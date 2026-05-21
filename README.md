@@ -17,17 +17,18 @@ AI-powered code review CLI tool. Supports OpenAI and Anthropic providers. Integr
 
 ## Installation
 
+### One-line install (recommended)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/plutobe/cr-cli/main/install.sh | bash
+```
+
 ### Build from source
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/plutobe/cr-cli.git
 cd cr-cli
 make build
-```
-
-### Install to system path
-
-```bash
 make install
 ```
 

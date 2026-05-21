@@ -17,17 +17,18 @@ AI 驱动的代码审查命令行工具，支持 OpenAI 和 Anthropic Provider�
 
 ## 安装
 
+### 一键安装（推荐）
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/plutobe/cr-cli/main/install.sh | bash
+```
+
 ### 从源码编译
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/plutobe/cr-cli.git
 cd cr-cli
 make build
-```
-
-### 安装到系统路径
-
-```bash
 make install
 ```
 
