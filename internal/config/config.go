@@ -66,7 +66,20 @@ func Load(path string) (*Config, error) {
 	}
 
 	applyDefaults(cfg)
+	if err := cfg.Validate(); err != nil {
+		return nil, fmt.Errorf("validate config: %w", err)
+	}
 	return cfg, nil
+}
+
+func (c *Config) Validate() error {
+	if c.Provider.Type == "" {
+		return fmt.Errorf("provider.type is required")
+	}
+	if c.Provider.APIKey == "" {
+		return fmt.Errorf("provider.api_key is required")
+	}
+	return nil
 }
 
 var envVarRe = regexp.MustCompile(`\$\{([^}]+)\}`)
@@ -81,6 +94,12 @@ func expandEnvVars(s string) string {
 	})
 }
 
+// applyDefaults fills unset fields with sensible defaults.
+// Note: because defaults are applied via zero-value checks (== "" / == 0),
+// explicitly setting a field to its zero value in the config file (e.g.
+// temperature: 0) will be overridden by the default. There is no way to
+// distinguish "not set" from "explicitly set to zero" with the current
+// approach.
 func applyDefaults(cfg *Config) {
 	if cfg.Provider.BaseURL == "" {
 		switch cfg.Provider.Type {

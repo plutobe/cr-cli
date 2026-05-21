@@ -53,11 +53,11 @@ func TestLoadConfigWithEnvVar(t *testing.T) {
 	dir := t.TempDir()
 	cfgPath := filepath.Join(dir, "cr-cli.yaml")
 	content := `provider:
+  type: openai
   api_key: ${TEST_API_KEY}
 `
 	os.WriteFile(cfgPath, []byte(content), 0644)
-	os.Setenv("TEST_API_KEY", "sk-secret")
-	defer os.Unsetenv("TEST_API_KEY")
+	t.Setenv("TEST_API_KEY", "sk-secret")
 
 	cfg, err := Load(cfgPath)
 	if err != nil {
@@ -89,5 +89,32 @@ func TestLoadConfigDefaults(t *testing.T) {
 	}
 	if cfg.Review.BatchSize != 10 {
 		t.Errorf("default batch_size = %d, want %d", cfg.Review.BatchSize, 10)
+	}
+}
+
+func TestLoadConfig_FileNotFound(t *testing.T) {
+	_, err := Load("/nonexistent/path/config.yaml")
+	if err == nil {
+		t.Error("expected error for nonexistent file")
+	}
+}
+
+func TestLoadConfig_MalformedYAML(t *testing.T) {
+	dir := t.TempDir()
+	cfgPath := filepath.Join(dir, "bad.yaml")
+	os.WriteFile(cfgPath, []byte("not: [valid: yaml"), 0644)
+	_, err := Load(cfgPath)
+	if err == nil {
+		t.Error("expected error for malformed YAML")
+	}
+}
+
+func TestLoadConfig_MissingRequiredFields(t *testing.T) {
+	dir := t.TempDir()
+	cfgPath := filepath.Join(dir, "empty.yaml")
+	os.WriteFile(cfgPath, []byte("provider:\n  type: openai\n"), 0644)
+	_, err := Load(cfgPath)
+	if err == nil {
+		t.Error("expected error for missing api_key")
 	}
 }
