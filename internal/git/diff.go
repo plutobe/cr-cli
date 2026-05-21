@@ -55,6 +55,22 @@ func GetDiff(repoDir string, source DiffSource) (string, error) {
 	return runGit(repoDir, "show", "HEAD")
 }
 
+// GetRemoteProject extracts the project path (e.g. "group/project") from the
+// origin remote URL. Works with both HTTPS and SSH URLs.
+func GetRemoteProject(repoDir string) (string, error) {
+	out, err := runGit(repoDir, "remote", "get-url", "origin")
+	if err != nil {
+		return "", err
+	}
+	u := strings.TrimSpace(out)
+	u = strings.TrimSuffix(u, ".git")
+	parts := strings.Split(u, "/")
+	if len(parts) < 2 {
+		return "", fmt.Errorf("cannot parse project from remote URL: %s", u)
+	}
+	return strings.Join(parts[len(parts)-2:], "/"), nil
+}
+
 func runGit(dir string, args ...string) (string, error) {
 	cmd := exec.Command("git", args...)
 	cmd.Dir = dir
