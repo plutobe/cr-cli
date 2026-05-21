@@ -25,16 +25,26 @@ func setupTestRepo(t *testing.T) string {
 	return dir
 }
 
+func runGitCmd(t *testing.T, dir string, args ...string) {
+	t.Helper()
+	cmd := exec.Command("git", args...)
+	cmd.Dir = dir
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("git %v failed: %v", args, err)
+	}
+}
+
 func TestGetDiff_Unstaged(t *testing.T) {
 	dir := setupTestRepo(t)
 	os.WriteFile(filepath.Join(dir, "main.go"), []byte("package main\n"), 0644)
-	exec.Command("git", "add", ".").Run()
+	runGitCmd(t, dir, "add", ".")
+	runGitCmd(t, dir, "commit", "-m", "init")
 
 	diff, err := GetDiff(dir, DiffSource{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	// No unstaged changes yet, should return empty
+	// No changes yet, should return empty
 	if len(diff) != 0 {
 		t.Errorf("expected empty diff, got %q", diff)
 	}
@@ -53,7 +63,7 @@ func TestGetDiff_Unstaged(t *testing.T) {
 func TestGetDiff_Staged(t *testing.T) {
 	dir := setupTestRepo(t)
 	os.WriteFile(filepath.Join(dir, "main.go"), []byte("package main\n"), 0644)
-	exec.Command("git", "add", ".").Run()
+	runGitCmd(t, dir, "add", ".")
 
 	diff, err := GetDiff(dir, DiffSource{})
 	if err != nil {
@@ -68,11 +78,11 @@ func TestGetDiff_Staged(t *testing.T) {
 func TestGetDiff_Commit(t *testing.T) {
 	dir := setupTestRepo(t)
 	os.WriteFile(filepath.Join(dir, "main.go"), []byte("package main\n"), 0644)
-	exec.Command("git", "add", ".").Run()
-	exec.Command("git", "commit", "-m", "init").Run()
+	runGitCmd(t, dir, "add", ".")
+	runGitCmd(t, dir, "commit", "-m", "init")
 	os.WriteFile(filepath.Join(dir, "main.go"), []byte("package main\n\nfunc main() {}\n"), 0644)
-	exec.Command("git", "add", ".").Run()
-	exec.Command("git", "commit", "-m", "add main").Run()
+	runGitCmd(t, dir, "add", ".")
+	runGitCmd(t, dir, "commit", "-m", "add main")
 
 	diff, err := GetDiff(dir, DiffSource{Commit: "HEAD~1"})
 	if err != nil {

@@ -14,7 +14,7 @@ type DiffSource struct {
 }
 
 // GetDiff retrieves the git diff for the given repo directory.
-// If source is empty, it auto-detects: unstaged -> staged -> last commit.
+// If source is empty, it auto-detects: unstaged -> staged.
 func GetDiff(repoDir string, source DiffSource) (string, error) {
 	if source.Commit != "" {
 		return runGit(repoDir, "show", source.Commit)
@@ -27,7 +27,7 @@ func GetDiff(repoDir string, source DiffSource) (string, error) {
 		return runGit(repoDir, "diff", base+"..."+source.Branch)
 	}
 
-	// Auto-detect: unstaged -> staged -> last commit
+	// Auto-detect: unstaged -> staged
 	diff, err := runGit(repoDir, "diff")
 	if err != nil {
 		return "", err
@@ -39,15 +39,6 @@ func GetDiff(repoDir string, source DiffSource) (string, error) {
 	diff, err = runGit(repoDir, "diff", "--cached")
 	if err != nil {
 		return "", err
-	}
-	if strings.TrimSpace(diff) != "" {
-		return diff, nil
-	}
-
-	diff, err = runGit(repoDir, "show", "HEAD")
-	if err != nil {
-		// No commits yet, return empty
-		return "", nil
 	}
 	return diff, nil
 }
