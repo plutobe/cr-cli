@@ -34,9 +34,10 @@ func (p *anthropicProvider) Review(ctx context.Context, req *ReviewRequest) (*Re
 	userPrompt := buildUserPrompt(req)
 
 	body := map[string]interface{}{
-		"model":      p.model,
-		"max_tokens": p.maxTokens,
-		"system":     systemPrompt,
+		"model":       p.model,
+		"max_tokens":  p.maxTokens,
+		"temperature": p.temperature,
+		"system":      systemPrompt,
 		"messages": []map[string]string{
 			{"role": "user", "content": userPrompt},
 		},
