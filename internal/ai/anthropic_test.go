@@ -33,7 +33,7 @@ func TestAnthropicProvider_Review(t *testing.T) {
 	}))
 	defer server.Close()
 
-	provider := NewAnthropicProvider(server.URL+"/v1", "test-key", "claude-sonnet-4-20250514", 4096, 0.1)
+	provider := NewAnthropicProvider(server.URL+"/v1", "test-key", "claude-sonnet-4-20250514", 4096, 0.1, false)
 	resp, err := provider.Review(context.Background(), &ReviewRequest{
 		Language: "go",
 		Filename: "main.go",
@@ -64,7 +64,7 @@ func TestAnthropicProvider_EmptyResponse(t *testing.T) {
 	}))
 	defer server.Close()
 
-	provider := NewAnthropicProvider(server.URL+"/v1", "test-key", "claude-sonnet-4-20250514", 4096, 0.1)
+	provider := NewAnthropicProvider(server.URL+"/v1", "test-key", "claude-sonnet-4-20250514", 4096, 0.1, false)
 	resp, err := provider.Review(context.Background(), &ReviewRequest{
 		Language: "go",
 		Filename: "main.go",

@@ -31,30 +31,32 @@ Binary files differ
 	}
 }
 
-func TestParseChangeset_FilterByLanguage(t *testing.T) {
+func TestParseChangeset_FilterByIgnorePatterns(t *testing.T) {
 	diff := `diff --git a/main.go b/main.go
 --- a/main.go
 +++ b/main.go
 @@ -1,1 +1,2 @@
  package main
 +// change
-diff --git a/app.py b/app.py
---- a/app.py
-+++ b/app.py
+diff --git a/vendor/lib.go b/vendor/lib.go
+--- a/vendor/lib.go
++++ b/vendor/lib.go
 @@ -1,1 +1,2 @@
- print("hello")
-+# change
-diff --git a/README.md b/README.md
---- a/README.md
-+++ b/README.md
+ package vendor
++// change
+diff --git a/node_modules/pkg/index.js b/node_modules/pkg/index.js
+--- a/node_modules/pkg/index.js
++++ b/node_modules/pkg/index.js
 @@ -1,1 +1,2 @@
- # Test
-+new line
+ console.log("hi")
++// change
 `
-	allowed := []string{"go", "python"}
-	files := ParseChangeset(diff, WithLanguages(allowed))
-	if len(files) != 2 {
-		t.Fatalf("expected 2 files, got %d", len(files))
+	files := ParseChangeset(diff, WithIgnorePatterns([]string{"vendor/**", "node_modules/**"}))
+	if len(files) != 1 {
+		t.Fatalf("expected 1 file, got %d", len(files))
+	}
+	if files[0].Filename != "main.go" {
+		t.Errorf("filename = %q, want %q", files[0].Filename, "main.go")
 	}
 }
 

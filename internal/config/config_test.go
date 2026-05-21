@@ -84,8 +84,8 @@ func TestLoadConfigDefaults(t *testing.T) {
 	if cfg.Provider.BaseURL != "https://api.openai.com/v1" {
 		t.Errorf("default base_url = %q, want %q", cfg.Provider.BaseURL, "https://api.openai.com/v1")
 	}
-	if cfg.Review.Severity != "blocking" {
-		t.Errorf("default severity = %q, want %q", cfg.Review.Severity, "blocking")
+	if cfg.Review.Severity != "warning" {
+		t.Errorf("default severity = %q, want %q", cfg.Review.Severity, "warning")
 	}
 	if cfg.Review.BatchSize != 10 {
 		t.Errorf("default batch_size = %d, want %d", cfg.Review.BatchSize, 10)

@@ -10,6 +10,7 @@ import (
 	"cr-cli/internal/config"
 	"cr-cli/internal/git"
 	"cr-cli/internal/gitlab"
+	"cr-cli/internal/i18n"
 	"cr-cli/internal/output"
 	"cr-cli/internal/review"
 
@@ -27,23 +28,26 @@ var (
 
 var reviewCmd = &cobra.Command{
 	Use:   "review",
-	Short: "审查代码变更",
-	Long:  "自动检测代码变更或指定提交/MR 进行 AI 代码审查。",
-	RunE:  runReview,
+	Short: i18n.T("审查代码变更", "Review code changes"),
+	Long: i18n.T(
+		"自动检测代码变更或指定提交/MR 进行 AI 代码审查。",
+		"Auto-detect code changes or review specific commits/MRs with AI.",
+	),
+	RunE: runReview,
 }
 
 func init() {
-	reviewCmd.Flags().StringVar(&commitFlag, "commit", "", "审查指定提交 (SHA 或 ref)")
-	reviewCmd.Flags().IntVar(&mrFlag, "mr", 0, "审查指定 GitLab MR")
-	reviewCmd.Flags().StringVar(&branchFlag, "branch", "", "审查指定分支")
-	reviewCmd.Flags().StringVar(&baseFlag, "base", "main", "比较的基础分支")
-	reviewCmd.Flags().IntVar(&batchSizeFlag, "batch-size", 0, "每批审查文件数 (覆盖配置)")
-	reviewCmd.Flags().StringVar(&severityFlag, "severity", "", "审查模式: blocking|warning (覆盖配置)")
+	reviewCmd.Flags().StringVar(&commitFlag, "commit", "", i18n.T("审查指定提交 (SHA 或 ref)", "Review specific commit (SHA or ref)"))
+	reviewCmd.Flags().IntVar(&mrFlag, "mr", 0, i18n.T("审查指定 GitLab MR", "Review specific GitLab MR"))
+	reviewCmd.Flags().StringVar(&branchFlag, "branch", "", i18n.T("审查指定分支", "Review specific branch"))
+	reviewCmd.Flags().StringVar(&baseFlag, "base", "main", i18n.T("比较的基础分支", "Base branch for comparison"))
+	reviewCmd.Flags().IntVar(&batchSizeFlag, "batch-size", 0, i18n.T("每批审查文件数 (覆盖配置)", "Files per batch (override config)"))
+	reviewCmd.Flags().StringVar(&severityFlag, "severity", "", i18n.T("审查模式: blocking|warning (覆盖配置)", "Review mode: blocking|warning (override config)"))
 	rootCmd.AddCommand(reviewCmd)
 }
 
 func runReview(cmd *cobra.Command, args []string) error {
-	cfg, err := loadConfig()
+	cfg, err := loadConfigOrSetup()
 	if err != nil {
 		return fmt.Errorf("load config: %w", err)
 	}
@@ -64,7 +68,10 @@ func runReview(cmd *cobra.Command, args []string) error {
 	var diff string
 	if mrFlag > 0 {
 		if cfg.GitLab.URL == "" || cfg.GitLab.Token == "" {
-			return fmt.Errorf("GitLab MR review requires gitlab.url and gitlab.token in config")
+			return fmt.Errorf("%s", i18n.T(
+				"GitLab MR 审查需要在配置中设置 gitlab.url 和 gitlab.token",
+				"GitLab MR review requires gitlab.url and gitlab.token in config",
+			))
 		}
 		client := gitlab.NewClient(cfg.GitLab.URL, cfg.GitLab.Token)
 		project, err := git.GetRemoteProject(repoDir)
@@ -88,18 +95,18 @@ func runReview(cmd *cobra.Command, args []string) error {
 	}
 
 	if diff == "" {
-		fmt.Println("没有发现代码变更。")
+		fmt.Println(i18n.T("没有发现代码变更。", "No code changes found."))
 		return nil
 	}
 
 	// Parse changeset
-	files := git.ParseChangeset(diff, git.WithLanguages(cfg.Review.Languages))
+	files := git.ParseChangeset(diff, git.WithIgnorePatterns(cfg.Review.IgnorePatterns))
 	if len(files) == 0 {
-		fmt.Println("没有需要审查的文件。")
+		fmt.Println(i18n.T("没有需要审查的文件。", "No files to review."))
 		return nil
 	}
 
-	fmt.Printf("发现 %d 个文件需要审查。\n", len(files))
+	fmt.Printf(i18n.T("发现 %d 个文件需要审查。\n", "Found %d file(s) to review.\n"), len(files))
 
 	// Create provider
 	provider, err := createProvider(cfg)
@@ -135,7 +142,7 @@ func runReview(cmd *cobra.Command, args []string) error {
 			commitInfo = "auto-detect"
 		}
 		if err := sender.Send(outputResult, repoDir, commitInfo, startTime); err != nil {
-			fmt.Fprintf(os.Stderr, "Webhook 发送失败: %v\n", err)
+			fmt.Fprintf(os.Stderr, i18n.T("Webhook 发送失败: %v\n", "Webhook send failed: %v\n"), err)
 		}
 	}
 
@@ -162,6 +169,7 @@ func createProvider(cfg *config.Config) (ai.Provider, error) {
 			cfg.Provider.Model,
 			cfg.Provider.MaxTokens,
 			cfg.Provider.Temperature,
+			debug,
 		), nil
 	case "anthropic":
 		return ai.NewAnthropicProvider(
@@ -170,6 +178,7 @@ func createProvider(cfg *config.Config) (ai.Provider, error) {
 			cfg.Provider.Model,
 			cfg.Provider.MaxTokens,
 			cfg.Provider.Temperature,
+			debug,
 		), nil
 	default:
 		return nil, fmt.Errorf("unsupported provider: %s", cfg.Provider.Type)

@@ -35,7 +35,7 @@ func GetDiff(repoDir string, source DiffSource) (string, error) {
 		return runGit(repoDir, "diff", base+"..."+source.Branch)
 	}
 
-	// Auto-detect: unstaged → staged → last commit
+	// Auto-detect: unstaged → staged → last commit with code changes
 	diff, err := runGit(repoDir, "diff")
 	if err != nil {
 		return "", err
@@ -52,7 +52,26 @@ func GetDiff(repoDir string, source DiffSource) (string, error) {
 		return diff, nil
 	}
 
-	return runGit(repoDir, "show", "HEAD")
+	// Find most recent commit with actual diff content (skip binary-only commits)
+	logOut, err := runGit(repoDir, "log", "--format=%H", "-20")
+	if err != nil {
+		return "", err
+	}
+	for _, sha := range strings.Split(strings.TrimSpace(logOut), "\n") {
+		sha = strings.TrimSpace(sha)
+		if sha == "" {
+			continue
+		}
+		diff, err = runGit(repoDir, "show", sha)
+		if err != nil {
+			return "", err
+		}
+		if hasCodeChanges(diff) {
+			return diff, nil
+		}
+	}
+
+	return "", nil
 }
 
 // GetRemoteProject extracts the project path (e.g. "group/project") from the
@@ -69,6 +88,19 @@ func GetRemoteProject(repoDir string) (string, error) {
 		return "", fmt.Errorf("cannot parse project from remote URL: %s", u)
 	}
 	return strings.Join(parts[len(parts)-2:], "/"), nil
+}
+
+// hasCodeChanges checks if a diff contains actual code changes (not binary-only).
+func hasCodeChanges(diff string) bool {
+	for _, line := range strings.Split(diff, "\n") {
+		if strings.HasPrefix(line, "Binary files") {
+			continue
+		}
+		if strings.HasPrefix(line, "+") || strings.HasPrefix(line, "-") {
+			return true
+		}
+	}
+	return false
 }
 
 func runGit(dir string, args ...string) (string, error) {

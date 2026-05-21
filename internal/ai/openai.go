@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 )
 
 type openAIProvider struct {
@@ -15,15 +16,17 @@ type openAIProvider struct {
 	model       string
 	maxTokens   int
 	temperature float64
+	debug       bool
 }
 
-func NewOpenAIProvider(baseURL, apiKey, model string, maxTokens int, temperature float64) Provider {
+func NewOpenAIProvider(baseURL, apiKey, model string, maxTokens int, temperature float64, debug bool) Provider {
 	return &openAIProvider{
 		baseURL:     baseURL,
 		apiKey:      apiKey,
 		model:       model,
 		maxTokens:   maxTokens,
 		temperature: temperature,
+		debug:       debug,
 	}
 }
 
@@ -44,9 +47,15 @@ func (p *openAIProvider) Review(ctx context.Context, req *ReviewRequest) (*Revie
 		"response_format": map[string]string{"type": "json_object"},
 	}
 
-	jsonBody, err := json.Marshal(body)
+	jsonBody, err := json.MarshalIndent(body, "", "  ")
 	if err != nil {
 		return nil, fmt.Errorf("marshal request: %w", err)
+	}
+
+	if p.debug {
+		fmt.Fprintf(os.Stderr, "\n========== REQUEST [%s] ==========\n", p.Name())
+		fmt.Fprintf(os.Stderr, "POST %s/chat/completions\n", p.baseURL)
+		fmt.Fprintf(os.Stderr, "%s\n", string(jsonBody))
 	}
 
 	httpReq, err := http.NewRequestWithContext(ctx, "POST", p.baseURL+"/chat/completions", bytes.NewReader(jsonBody))
@@ -65,6 +74,17 @@ func (p *openAIProvider) Review(ctx context.Context, req *ReviewRequest) (*Revie
 	respData, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("read response: %w", err)
+	}
+
+	if p.debug {
+		fmt.Fprintf(os.Stderr, "\n========== RESPONSE [%s] (status %d) ==========\n", p.Name(), resp.StatusCode)
+		var pretty json.RawMessage
+		if json.Unmarshal(respData, &pretty) == nil {
+			out, _ := json.MarshalIndent(pretty, "", "  ")
+			fmt.Fprintf(os.Stderr, "%s\n", string(out))
+		} else {
+			fmt.Fprintf(os.Stderr, "%s\n", string(respData))
+		}
 	}
 
 	if resp.StatusCode != http.StatusOK {
@@ -87,19 +107,4 @@ func (p *openAIProvider) Review(ctx context.Context, req *ReviewRequest) (*Revie
 	}
 
 	return parseIssues(result.Choices[0].Message.Content)
-}
-
-func parseIssues(content string) (*ReviewResponse, error) {
-	var resp struct {
-		Issues []Issue `json:"issues"`
-	}
-	if err := json.Unmarshal([]byte(content), &resp); err != nil {
-		// Try parsing as bare array for compatibility
-		var issues []Issue
-		if err2 := json.Unmarshal([]byte(content), &issues); err2 != nil {
-			return nil, fmt.Errorf("parse issues JSON: %w (content: %s)", err, content)
-		}
-		return &ReviewResponse{Issues: issues}, nil
-	}
-	return &ReviewResponse{Issues: resp.Issues}, nil
 }

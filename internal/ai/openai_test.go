@@ -34,7 +34,7 @@ func TestOpenAIProvider_Review(t *testing.T) {
 	}))
 	defer server.Close()
 
-	provider := NewOpenAIProvider(server.URL, "test-key", "gpt-4", 4096, 0.1)
+	provider := NewOpenAIProvider(server.URL, "test-key", "gpt-4", 4096, 0.1, false)
 	resp, err := provider.Review(context.Background(), &ReviewRequest{
 		Language: "go",
 		Filename: "main.go",
@@ -71,7 +71,7 @@ func TestOpenAIProvider_EmptyResponse(t *testing.T) {
 	}))
 	defer server.Close()
 
-	provider := NewOpenAIProvider(server.URL, "test-key", "gpt-4", 4096, 0.1)
+	provider := NewOpenAIProvider(server.URL, "test-key", "gpt-4", 4096, 0.1, false)
 	resp, err := provider.Review(context.Background(), &ReviewRequest{
 		Language: "go",
 		Filename: "main.go",

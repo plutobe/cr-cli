@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"cr-cli/internal/ai"
+	"cr-cli/internal/i18n"
 )
 
 type ReviewResult struct {
@@ -33,26 +34,29 @@ func NewTerminalRenderer(w io.Writer, color bool) *TerminalRenderer {
 
 func (r *TerminalRenderer) Render(result *ReviewResult) {
 	fmt.Fprintln(r.w, "╔══════════════════════════════════════════════════════════════╗")
-	fmt.Fprintln(r.w, "║                    CR-CLI 代码审查报告                       ║")
+	fmt.Fprintf(r.w, "║          %s          ║\n", i18n.T("CR-CLI 代码审查报告", "CR-CLI Code Review Report"))
 	fmt.Fprintln(r.w, "╚══════════════════════════════════════════════════════════════╝")
 	fmt.Fprintln(r.w)
 
 	for _, file := range result.Files {
-		fmt.Fprintf(r.w, "📁 文件: %s (%s)\n", file.Filename, file.Language)
+		fmt.Fprintf(r.w, "📁 %s: %s (%s)\n", i18n.T("文件", "File"), file.Filename, file.Language)
 		fmt.Fprintln(r.w, "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 		fmt.Fprintln(r.w)
 
 		for _, issue := range file.Issues {
 			icon := r.severityIcon(issue.Severity)
-			fmt.Fprintf(r.w, "  %s 第 %d 行 [%s] %s\n", icon, issue.Line, strings.ToUpper(issue.Severity), issue.Message)
-			fmt.Fprintf(r.w, "    %s\n", issue.Suggestion)
+			fmt.Fprintf(r.w, "  %s %s %d [%s] %s\n", icon, i18n.T("第", "Line"), issue.Line, strings.ToUpper(issue.Severity), issue.Message)
+			fmt.Fprintf(r.w, "    %s %s\n", i18n.T("💡 建议:", "💡 Suggestion:"), issue.Suggestion)
 			fmt.Fprintln(r.w)
 		}
 	}
 
 	fmt.Fprintln(r.w, "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-	fmt.Fprintf(r.w, "📊 统计: %d 个错误, %d 个警告, %d 个提示\n",
-		result.ErrorCount, result.WarningCount, result.InfoCount)
+	fmt.Fprintf(r.w, "📊 %s: %d %s, %d %s, %d %s\n",
+		i18n.T("统计", "Stats"),
+		result.ErrorCount, i18n.T("个错误", "error(s)"),
+		result.WarningCount, i18n.T("个警告", "warning(s)"),
+		result.InfoCount, i18n.T("个提示", "info"))
 }
 
 func (r *TerminalRenderer) severityIcon(severity string) string {

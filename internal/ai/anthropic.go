@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 )
 
 type anthropicProvider struct {
@@ -15,15 +16,17 @@ type anthropicProvider struct {
 	model       string
 	maxTokens   int
 	temperature float64
+	debug       bool
 }
 
-func NewAnthropicProvider(baseURL, apiKey, model string, maxTokens int, temperature float64) Provider {
+func NewAnthropicProvider(baseURL, apiKey, model string, maxTokens int, temperature float64, debug bool) Provider {
 	return &anthropicProvider{
 		baseURL:     baseURL,
 		apiKey:      apiKey,
 		model:       model,
 		maxTokens:   maxTokens,
 		temperature: temperature,
+		debug:       debug,
 	}
 }
 
@@ -43,9 +46,15 @@ func (p *anthropicProvider) Review(ctx context.Context, req *ReviewRequest) (*Re
 		},
 	}
 
-	jsonBody, err := json.Marshal(body)
+	jsonBody, err := json.MarshalIndent(body, "", "  ")
 	if err != nil {
 		return nil, fmt.Errorf("marshal request: %w", err)
+	}
+
+	if p.debug {
+		fmt.Fprintf(os.Stderr, "\n========== REQUEST [%s] ==========\n", p.Name())
+		fmt.Fprintf(os.Stderr, "POST %s/messages\n", p.baseURL)
+		fmt.Fprintf(os.Stderr, "%s\n", string(jsonBody))
 	}
 
 	httpReq, err := http.NewRequestWithContext(ctx, "POST", p.baseURL+"/messages", bytes.NewReader(jsonBody))
@@ -65,6 +74,17 @@ func (p *anthropicProvider) Review(ctx context.Context, req *ReviewRequest) (*Re
 	respData, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("read response: %w", err)
+	}
+
+	if p.debug {
+		fmt.Fprintf(os.Stderr, "\n========== RESPONSE [%s] (status %d) ==========\n", p.Name(), resp.StatusCode)
+		var pretty json.RawMessage
+		if json.Unmarshal(respData, &pretty) == nil {
+			out, _ := json.MarshalIndent(pretty, "", "  ")
+			fmt.Fprintf(os.Stderr, "%s\n", string(out))
+		} else {
+			fmt.Fprintf(os.Stderr, "%s\n", string(respData))
+		}
 	}
 
 	if resp.StatusCode != http.StatusOK {

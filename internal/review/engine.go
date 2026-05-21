@@ -6,6 +6,7 @@ import (
 
 	"cr-cli/internal/ai"
 	"cr-cli/internal/git"
+	"cr-cli/internal/i18n"
 )
 
 type Options struct {
@@ -43,7 +44,7 @@ func (e *Engine) Review(ctx context.Context, files []git.FileChange) (*Result, e
 	result.Batches = len(batches)
 
 	for i, batch := range batches {
-		fmt.Printf("审查批次 %d/%d (%d 个文件)...\n", i+1, len(batches), len(batch))
+		fmt.Printf(i18n.T("审查批次 %d/%d (%d 个文件)...\n", "Review batch %d/%d (%d file(s))...\n"), i+1, len(batches), len(batch))
 		for _, file := range batch {
 			resp, err := e.provider.Review(ctx, &ai.ReviewRequest{
 				Language: file.Language,

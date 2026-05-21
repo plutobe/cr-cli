@@ -28,7 +28,6 @@ type ProviderConfig struct {
 type ReviewConfig struct {
 	Severity       string   `yaml:"severity"`
 	BatchSize      int      `yaml:"batch_size"`
-	Languages      []string `yaml:"languages"`
 	IgnorePatterns []string `yaml:"ignore_patterns"`
 	Rules          []string `yaml:"rules"`
 }
@@ -116,7 +115,7 @@ func applyDefaults(cfg *Config) {
 		cfg.Provider.Temperature = 0.1
 	}
 	if cfg.Review.Severity == "" {
-		cfg.Review.Severity = "blocking"
+		cfg.Review.Severity = "warning"
 	}
 	if cfg.Review.BatchSize == 0 {
 		cfg.Review.BatchSize = 10

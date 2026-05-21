@@ -16,18 +16,18 @@ type FileChange struct {
 type ParseOption func(*parseOptions)
 
 type parseOptions struct {
-	languages []string
+	ignorePatterns []string
 }
 
-// WithLanguages filters results to only include files matching the given languages.
-func WithLanguages(langs []string) ParseOption {
+// WithIgnorePatterns filters out files matching any of the glob patterns.
+func WithIgnorePatterns(patterns []string) ParseOption {
 	return func(o *parseOptions) {
-		o.languages = langs
+		o.ignorePatterns = patterns
 	}
 }
 
 // ParseChangeset parses unified diff output into individual file changes.
-// Binary files are skipped. Options can filter by language.
+// Binary files are skipped. Options can filter by ignore patterns.
 func ParseChangeset(diff string, opts ...ParseOption) []FileChange {
 	options := &parseOptions{}
 	for _, o := range opts {
@@ -70,22 +70,29 @@ func ParseChangeset(diff string, opts ...ParseOption) []FileChange {
 }
 
 func appendIfAllowed(files []FileChange, f FileChange, opts *parseOptions) []FileChange {
-	if len(opts.languages) > 0 {
-		if f.Language == "" {
-			return files
-		}
-		found := false
-		for _, l := range opts.languages {
-			if l == f.Language {
-				found = true
-				break
-			}
-		}
-		if !found {
+	for _, pattern := range opts.ignorePatterns {
+		if matchIgnorePattern(pattern, f.Filename) {
 			return files
 		}
 	}
 	return append(files, f)
+}
+
+func matchIgnorePattern(pattern, filename string) bool {
+	// Directory pattern: "vendor/**" matches "vendor/anything"
+	if strings.HasSuffix(pattern, "/**") {
+		dir := strings.TrimSuffix(pattern, "/**")
+		return strings.HasPrefix(filename, dir+"/")
+	}
+	// Glob match against basename
+	if matched, _ := filepath.Match(pattern, filepath.Base(filename)); matched {
+		return true
+	}
+	// Glob match against full path
+	if matched, _ := filepath.Match(pattern, filename); matched {
+		return true
+	}
+	return false
 }
 
 func detectLanguage(filename string) string {
@@ -97,6 +104,9 @@ func detectLanguage(filename string) string {
 		".rs": "rust", ".rb": "ruby", ".php": "php",
 		".swift": "swift", ".kt": "kotlin", ".scala": "scala",
 		".sh": "shell", ".bash": "shell", ".sql": "sql",
+		".html": "html", ".htm": "html", ".css": "css",
+		".scss": "css", ".less": "css", ".vue": "javascript",
+		".jsx": "javascript", ".tsx": "typescript",
 	}
 	if lang, ok := langMap[ext]; ok {
 		return lang
