@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -37,16 +38,16 @@ func runGitCmd(t *testing.T, dir string, args ...string) {
 func TestGetDiff_Unstaged(t *testing.T) {
 	dir := setupTestRepo(t)
 	os.WriteFile(filepath.Join(dir, "main.go"), []byte("package main\n"), 0644)
-	runGitCmd(t, dir, "add", ".")
-	runGitCmd(t, dir, "commit", "-m", "init")
+	exec.Command("git", "add", ".").Run()
+	exec.Command("git", "commit", "-m", "init").Run()
 
+	// No unstaged or staged changes, should return last commit diff
 	diff, err := GetDiff(dir, DiffSource{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	// No changes yet, should return empty
-	if len(diff) != 0 {
-		t.Errorf("expected empty diff, got %q", diff)
+	if len(diff) == 0 {
+		t.Error("expected non-empty diff (last commit) when no working tree changes")
 	}
 
 	// Make unstaged change
@@ -57,6 +58,10 @@ func TestGetDiff_Unstaged(t *testing.T) {
 	}
 	if len(diff) == 0 {
 		t.Error("expected non-empty diff for unstaged changes")
+	}
+	// Should contain the unstaged change, not the last commit
+	if !strings.Contains(diff, "+func main()") {
+		t.Error("diff should contain the unstaged change")
 	}
 }
 
